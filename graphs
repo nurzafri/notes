@@ -1,0 +1,55 @@
+Monthly
+
+SELECT NAME, sum(TOTAL) as TOTAL
+from
+(select  months.month as NAME,  mv.amount as TOTAL
+from 
+
+(select to_char(date '2019-09-01' - numtoyminterval(level - 1, 'month'), 'YYYY/mm') as month
+from dual
+connect by level <= 12) months
+
+left join transactions mv
+on to_char(mv.tran_timestamp, 'YYYY/mm') = months.month
+and mv.activity_type = '9624'
+AND MV.TRX_DET3 = '01' AND
+MV.TRAN_STATUS= 'SUCCESS' and
+TO_ACC_NO 				= 'PBB201900000105' AND
+PAYMENT_REF 			= '342' AND
+OTHER_PAYMENT_DETAILS 	= '889')
+group by NAME;
+
+
+Daily
+
+select all_dates.d as tran_timestamp, 
+       sum(your_query.amount) as total_amt
+ from
+    (select date '2019-07-01' + level - 1 as d
+       from dual
+     connect by level <= (date '2019-09-30' - date '2019-07-01' ) + 1) all_dates 
+Left join
+    (SELECT trunc(tran_timestamp) as tran_timestamp , amount
+       FROM TRANSACTIONS
+      WHERE TRAN_STATUS = 'SUCCESS' 
+      AND ACTIVITY_TYPE = '9624'
+      AND TRX_DET3 = '01'
+      AND TO_ACC_NO = 'PBB201900000105'
+      AND PAYMENT_REF 			= '342' 
+      AND OTHER_PAYMENT_DETAILS 	= '889'
+        AND tran_timestamp  >= TO_DATE('2019/09/01', 'yyyy/mm/dd')
+        AND tran_timestamp <= TO_DATE('2019/09/30','yyyy/mm/dd')) your_query
+On (all_dates.d = tran_timestamp)
+Group by all_dates.d
+order by all_dates.d;
+
+
+Weekly - Same concept as monthly
+
+with dates as (
+   select date '2019-09-01' + level - 1 dt
+   from dual connect by level <= 90
+)
+select to_char(dt, 'YYYY-MM-DD dy "IYYY"=IYYY "IW="IW "WW="WW') output
+from dates
+order by dt;
